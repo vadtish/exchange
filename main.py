@@ -16,25 +16,30 @@ def fetch_exchange_rates():
         data = response.json()
         dates = []
         usd_rates = []
+        eur_rates = []
         for record in data:
             effective_date = record['effectiveDate']
             usd_rate = next((rate['mid'] for rate in record['rates'] if rate['code'] == 'USD'), None)
-            if usd_rate:
+            eur_rate = next((rate['mid'] for rate in record['rates'] if rate['code'] == 'EUR'), None)
+            if usd_rate and eur_rate:
                 dates.append(effective_date)
                 usd_rates.append(usd_rate)
+                eur_rates.append(eur_rate)
 
         plt.figure(figsize=(10, 5))
-        plt.plot(dates, usd_rates, marker='o', linestyle='-', color='b')
+        plt.plot(dates, usd_rates, marker='o', linestyle='-', color='b', label='USD')
+        plt.plot(dates, eur_rates, marker='o', linestyle='-', color='g', label='EUR')
         plt.xlabel('Date')
-        plt.ylabel('USD Exchange Rate')
-        plt.title('USD Exchange rate in a month')
+        plt.ylabel('Exchange Rate')
+        plt.title('USD and EUR Exchange Rates Over the Last Month')
+        plt.legend()
         plt.grid(True)
         plt.xticks(rotation=45)
         plt.tight_layout()
-        plt.savefig('usd_exchange_rate.jpg')
+        plt.savefig('exchange_rates.jpg')
         plt.close()
 
-        return 'usd_exchange_rate.jpg'
+        return 'exchange_rates.jpg'
     else:
         return None
 
