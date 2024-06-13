@@ -27,7 +27,7 @@ def fetch_exchange_rates():
         plt.plot(dates, usd_rates, marker='o', linestyle='-', color='b')
         plt.xlabel('Date')
         plt.ylabel('USD Exchange Rate')
-        plt.title('USD Exchange Rate Over the Last Two Weeks')
+        plt.title('USD Exchange rate in a month')
         plt.grid(True)
         plt.xticks(rotation=45)
         plt.tight_layout()
