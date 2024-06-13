@@ -2,26 +2,11 @@ import requests
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import telebot
-import os
-import json
 import argparse
-
-# Файл для хранения данных пользователей
-USERS_FILE = 'users.json'
-
-def load_users():
-    if os.path.exists(USERS_FILE):
-        with open(USERS_FILE, 'r') as f:
-            return json.load(f)
-    return []
-
-def save_users(users):
-    with open(USERS_FILE, 'w') as f:
-        json.dump(users, f)
 
 def fetch_exchange_rates():
     end_date = datetime.now()
-    start_date = end_date - timedelta(days=31)
+    start_date = end_date - timedelta(days=14)
     start_date_str = start_date.strftime('%Y-%m-%d')
     end_date_str = end_date.strftime('%Y-%m-%d')
     api_url = f"https://api.nbp.pl/api/exchangerates/tables/a/{start_date_str}/{end_date_str}/"
@@ -53,50 +38,24 @@ def fetch_exchange_rates():
     else:
         return None
 
-def send_exchange_rate(bot):
-    users = load_users()
+def send_exchange_rate(bot, chat_id):
     file_path = fetch_exchange_rates()
     if file_path:
-        for user in users:
-            with open(file_path, 'rb') as photo:
-                bot.send_photo(user, photo)
+        with open(file_path, 'rb') as photo:
+            bot.send_photo(chat_id, photo)
 
 def main():
     # Парсинг аргументов командной строки
     parser = argparse.ArgumentParser(description='Telegram bot for sending exchange rate charts.')
     parser.add_argument('--token', type=str, required=True, help='Telegram bot token')
+    parser.add_argument('--chat_id', type=str, required=True, help='Telegram chat ID')
     args = parser.parse_args()
 
     # Создание и настройка бота
     bot = telebot.TeleBot(args.token)
 
-    @bot.message_handler(commands=['start'])
-    def start(message):
-        user_id = message.chat.id
-        users = load_users()
-        if user_id not in users:
-            users.append(user_id)
-            save_users(users)
-            bot.reply_to(message, 'Вы подписаны на ежедневную рассылку курсов валют.')
-        else:
-            bot.reply_to(message, 'Вы уже подписаны на рассылку.')
-
-    @bot.message_handler(commands=['stop'])
-    def stop(message):
-        user_id = message.chat.id
-        users = load_users()
-        if user_id in users:
-            users.remove(user_id)
-            save_users(users)
-            bot.reply_to(message, 'Вы отписаны от ежедневной рассылки курсов валют.')
-        else:
-            bot.reply_to(message, 'Вы не подписаны на рассылку.')
-
-    # Запускаем бота для обработки команд /start и /stop
-    bot.polling(none_stop=False, interval=0, timeout=20)
-
-    # Отправляем курсы валют всем пользователям
-    send_exchange_rate(bot)
+    # Отправка курсов валют в указанный чат
+    send_exchange_rate(bot, args.chat_id)
 
 if __name__ == '__main__':
     main()
