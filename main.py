@@ -6,7 +6,7 @@ import argparse
 
 def fetch_exchange_rates():
     end_date = datetime.now()
-    start_date = end_date - timedelta(days=14)
+    start_date = end_date - timedelta(days=30)
     start_date_str = start_date.strftime('%Y-%m-%d')
     end_date_str = end_date.strftime('%Y-%m-%d')
     api_url = f"https://api.nbp.pl/api/exchangerates/tables/a/{start_date_str}/{end_date_str}/"
