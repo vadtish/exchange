@@ -17,6 +17,10 @@ def fetch_exchange_rates():
         dates = []
         usd_rates = []
         eur_rates = []
+        latest_usd = None
+        latest_eur = None
+        latest_date = None
+
         for record in data:
             effective_date = record['effectiveDate']
             usd_rate = next((rate['mid'] for rate in record['rates'] if rate['code'] == 'USD'), None)
@@ -25,6 +29,9 @@ def fetch_exchange_rates():
                 dates.append(effective_date)
                 usd_rates.append(usd_rate)
                 eur_rates.append(eur_rate)
+                latest_usd = usd_rate
+                latest_eur = eur_rate
+                latest_date = effective_date
 
         plt.figure(figsize=(10, 5))
         plt.plot(dates, usd_rates, marker='o', linestyle='-', color='b', label='USD')
@@ -39,27 +46,26 @@ def fetch_exchange_rates():
         plt.savefig('exchange_rates.jpg')
         plt.close()
 
-        return 'exchange_rates.jpg'
+        return 'exchange_rates.jpg', latest_date, latest_usd, latest_eur
     else:
-        return None
+        return None, None, None, None
 
 def send_exchange_rate(bot, chat_id):
-    file_path = fetch_exchange_rates()
+    file_path, latest_date, latest_usd, latest_eur = fetch_exchange_rates()
     if file_path:
+        message = f"Курсы валют на {latest_date}:\nUSD: {latest_usd} PLN\nEUR: {latest_eur} PLN"
+        bot.send_message(chat_id, message)
+
         with open(file_path, 'rb') as photo:
             bot.send_photo(chat_id, photo)
 
 def main():
-    # Парсинг аргументов командной строки
     parser = argparse.ArgumentParser(description='Telegram bot for sending exchange rate charts.')
     parser.add_argument('--token', type=str, required=True, help='Telegram bot token')
     parser.add_argument('--chat_id', type=str, required=True, help='Telegram chat ID')
     args = parser.parse_args()
 
-    # Создание и настройка бота
     bot = telebot.TeleBot(args.token)
-
-    # Отправка курсов валют в указанный чат
     send_exchange_rate(bot, args.chat_id)
 
 if __name__ == '__main__':
