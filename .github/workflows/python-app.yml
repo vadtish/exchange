@@ -3,7 +3,7 @@ name: Daily Job
 on:
   schedule:
     # Запуск каждый день в 14:00 по UTC
-    - cron: '0 13 * * 1-5'
+    - cron: '0 14 * * 1-5'
   workflow_dispatch:  # Позволяет запускать workflow вручную
 
 jobs:
