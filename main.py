@@ -5,11 +5,11 @@ from datetime import datetime, timedelta
 import telebot
 import argparse
 
-# Функция с повторными попытками
+
 def retry_request(func, *args, max_retries=3, delay=5):
     for attempt in range(max_retries):
         try:
-            return func(*args, timeout=60)  # Таймаут 60 сек
+            return func(*args, timeout=60)  
         except requests.exceptions.ReadTimeout:
             print(f"Попытка {attempt + 1}: Таймаут, жду {delay} сек...")
             time.sleep(delay)
@@ -24,11 +24,11 @@ def fetch_exchange_rates():
     end_date_str = end_date.strftime('%Y-%m-%d')
     api_url = f"https://api.nbp.pl/api/exchangerates/tables/a/{start_date_str}/{end_date_str}/"
     
-    session = requests.Session()  # Создаем сессию
-    session.timeout = 60  # Таймаут 60 секунд
+    session = requests.Session()  
+    session.timeout = 60 
     
     try:
-        response = session.get(api_url, timeout=60)  # Указываем таймаут
+        response = session.get(api_url, timeout=60)  
         response.raise_for_status()
     except requests.exceptions.Timeout:
         print("Ошибка: Таймаут при запросе к API")
