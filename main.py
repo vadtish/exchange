@@ -1,9 +1,21 @@
 import requests
+import time
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import telebot
 import argparse
-import time
+
+# Функция с повторными попытками
+def retry_request(func, *args, max_retries=3, delay=5):
+    for attempt in range(max_retries):
+        try:
+            return func(*args, timeout=60)  # Таймаут 60 сек
+        except requests.exceptions.ReadTimeout:
+            print(f"Попытка {attempt + 1}: Таймаут, жду {delay} сек...")
+            time.sleep(delay)
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            break
 
 def fetch_exchange_rates():
     end_date = datetime.now()
@@ -11,16 +23,24 @@ def fetch_exchange_rates():
     start_date_str = start_date.strftime('%Y-%m-%d')
     end_date_str = end_date.strftime('%Y-%m-%d')
     api_url = f"https://api.nbp.pl/api/exchangerates/tables/a/{start_date_str}/{end_date_str}/"
-    response = requests.get(api_url, timeout=10)
+    
+    session = requests.Session()  # Создаем сессию
+    session.timeout = 60  # Таймаут 60 секунд
+    
+    try:
+        response = session.get(api_url, timeout=60)  # Указываем таймаут
+        response.raise_for_status()
+    except requests.exceptions.Timeout:
+        print("Ошибка: Таймаут при запросе к API")
+        return None, None, None, None
+    except requests.exceptions.RequestException as e:
+        print(f"Ошибка сети: {e}")
+        return None, None, None, None
 
     if response.status_code == 200:
         data = response.json()
-        dates = []
-        usd_rates = []
-        eur_rates = []
-        latest_usd = None
-        latest_eur = None
-        latest_date = None
+        dates, usd_rates, eur_rates = [], [], []
+        latest_usd, latest_eur, latest_date = None, None, None
 
         for record in data:
             effective_date = record['effectiveDate']
@@ -30,9 +50,7 @@ def fetch_exchange_rates():
                 dates.append(effective_date)
                 usd_rates.append(usd_rate)
                 eur_rates.append(eur_rate)
-                latest_usd = usd_rate
-                latest_eur = eur_rate
-                latest_date = effective_date
+                latest_usd, latest_eur, latest_date = usd_rate, eur_rate, effective_date
 
         plt.figure(figsize=(10, 5))
         plt.plot(dates, usd_rates, marker='o', linestyle='-', color='b', label='USD')
@@ -55,10 +73,11 @@ def send_exchange_rate(bot, chat_id):
     file_path, latest_date, latest_usd, latest_eur = fetch_exchange_rates()
     if file_path:
         message = f"Курсы валют на {latest_date}:\nUSD: {latest_usd} PLN\nEUR: {latest_eur} PLN"
-        bot.send_message(chat_id, message, timeout=60)
+
+        retry_request(bot.send_message, chat_id, message)
 
         with open(file_path, 'rb') as photo:
-            bot.send_photo(chat_id, photo, timeout=60)
+            retry_request(bot.send_photo, chat_id, photo)
 
 def main():
     parser = argparse.ArgumentParser(description='Telegram bot for sending exchange rate charts.')
@@ -66,7 +85,7 @@ def main():
     parser.add_argument('--chat_id', type=str, required=True, help='Telegram chat ID')
     args = parser.parse_args()
 
-    bot = telebot.TeleBot(args.token, parse_mode="HTML", timeout=60)
+    bot = telebot.TeleBot(args.token, parse_mode="HTML")  # Без timeout
     send_exchange_rate(bot, args.chat_id)
 
 if __name__ == '__main__':
